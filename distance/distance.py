@@ -1,6 +1,8 @@
 #! /usr/bin/env python
 #-*- coding: utf-8 -*-
 
+# import time
+
 from math import sqrt
 from abc import ABCMeta, abstractmethod
 from error_wrongvec import WrongVecError
@@ -56,7 +58,7 @@ class PearsonDistance(Distance):
     """
     super(PearsonDistance, self).distance(vec1, vec2)      #super method
     avg1, avg2 = (self._avg(vec1), self._avg(vec2))
-    v1, v2 = ([item - avg1 for item in vec1[0]], [item - avg1 for item in vec2[0]])
+    v1, v2 = ([item - avg1 for item in vec1[0]], [item - avg2 for item in vec2[0]])
     sqrt1, sqrt2 = (sqrt(sum([pow(item, 2) for item in v1])), sqrt(sum([pow(item, 2) for item in v2])))
     if sqrt1*sqrt2 == 0:
       return 1
@@ -114,7 +116,13 @@ class SqrtDistance(Distance):
     Compute distance of two vector by square distance
     """
     super(SqrtDistance, self).distance(vec1, vec2)      #super method
-    vec=vec1-vec2
-    return sqrt(sum([pow(item, 2) for item in vec]))
+    # tic = time.time()
+
+    # _ = sqrt(sum([pow(item, 2) for item in (vec1 -vec2)]))
+    _ = linalg.norm(vec1-vec2)
+
+    # print(time.time()-tic)
+    return _
+    
 #end SqrtDistance
 
