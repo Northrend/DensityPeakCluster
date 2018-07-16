@@ -14,7 +14,10 @@ from distance import *
 import numpy as np
 
 if __name__ == '__main__':
-  builder = DistanceBuilder(500)
+  '''
+  :params: /path/to/input/npy /path/to/output/dat batch_size
+  '''
+  builder = DistanceBuilder(int(sys.argv[3]))
   builder.load_points_from_npy(sys.argv[1])
   # builder.build_distance_file_for_cluster(SqrtDistance(), r'../data/data_others/aggregation_distance.dat')
   builder.build_distance_file_for_cluster(distance.SqrtDistance(), sys.argv[2])

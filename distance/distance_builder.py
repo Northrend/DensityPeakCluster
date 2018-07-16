@@ -1,6 +1,7 @@
 #! /usr/bin/env python
 #-*- coding: utf-8 -*-
 
+from __future__ import print_function
 import time
 import math
 
@@ -68,27 +69,42 @@ class DistanceBuilder(object):
         print(x.shape,y.shape,s.shape)
 
     def _vectorized_gpu(vec, distance_obj, filename, batch_size):
-      with open(filename, 'w') as f:
-        d_n, d_f = vec.shape
-        d_p = batch_size 
-        x = np.broadcast_arrays(vec.reshape(d_n, 1, d_f), np.zeros((d_n, d_n, d_f)))[0]
-        y = np.broadcast_arrays(vec.reshape(1, d_n, d_f), np.zeros((d_n, d_n, d_f)))[0]
+      # with open(filename, 'w') as f:
+      d_p = batch_size 
+      d_n, d_f = vec.shape
+      res = mx.nd.zeros((d_n, d_n))
+      vec_1 = vec.reshape(d_n, 1, d_f)
+      vec_2 = vec.reshape(1, d_n, d_f)
+      for i in range(int(d_n/d_p)):
+        print('Batch index[{}] ...'.format(i))
+        x = np.broadcast_arrays(vec_1[i*d_p:(i+1)*d_p], np.zeros((d_p, d_n, d_f)))[0]
+        y = np.broadcast_arrays(vec_2, np.zeros((d_p, d_n, d_f)))[0]
         # x = mx.nd.array(x, mx.gpu(0))
         # y = mx.nd.array(y, mx.gpu(0))
-        diff = x-y
-        res = mx.nd.zeros((d_n, d_n))
-        for i in range(int(d_n/d_p)-1):
-          _ = mx.nd.array(diff[i*d_p:(i+1)*d_p], mx.gpu(0))
-          # print(_.shape)
-          res[i*d_p:(i+1)*d_p,] = mx.nd.norm(_, axis=2)
-        _ = mx.nd.array(diff[(int(d_n/d_p)-1)*d_p:], mx.gpu(0))
-        # print(_.shape)
-        res[(int(d_n/d_p)-1)*d_p:,] = mx.nd.norm(_, axis=2)
-        
+        # diff = mx.nd.array(x, mx.gpu(0))-mx.nd.array(y, mx.gpu(0))
+        # _ = mx.nd.array(diff[i*d_p:(i+1)*d_p], mx.gpu(0))
+        _ = mx.nd.array(x, mx.gpu(0))-mx.nd.array(y, mx.gpu(0)) 
+        print(i, _.shape)
+        res[i*d_p:(i+1)*d_p,] = mx.nd.norm(_, axis=2)
+      if d_n%d_p != 0:
+        print('Last batch ...')
+        x = np.broadcast_arrays(vec_1[int(d_n/d_p)*d_p:], np.zeros(((d_n%d_p), d_n, d_f)))[0]
+        y = np.broadcast_arrays(vec_2, np.zeros(((d_n%d_p), d_n, d_f)))[0]
+        # _ = mx.nd.array(diff[(int(d_n/d_p)-1)*d_p:], mx.gpu(0))
+        _ = mx.nd.array(x, mx.gpu(0))-mx.nd.array(y, mx.gpu(0))
+        print(_.shape)
+        res[int(d_n/d_p)*d_p:,] = mx.nd.norm(_, axis=2)
+      print("result mat:", res.shape)
+      # for i in xrange(res.shape[0] - 1):
+      #   for j in xrange(i, res.shape[0]):
+      #     f.write("{} {} {}\n".format(i+1, j+1, res[i,j]))
+      # mx.nd.save(filename, res)
+      np.save(filename, res.asnumpy())
 
     tic = time.time()
     # _double_loops(self.vectors, distance_obj, filename)
     # _vectorized(self.vectors, distance_obj, filename)
-    _vectorized_gpu(self.vectors.astype(np.float16), distance_obj, filename, self.batch_size)
+    # _vectorized_gpu(self.vectors.astype(np.float16), distance_obj, filename, self.batch_size)
+    _vectorized_gpu(self.vectors, distance_obj, filename, self.batch_size)
     print("cost: {:.6f}s".format(time.time()-tic))
 #end DistanceBuilder
